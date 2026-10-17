@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUST
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id           Int             @id @default(autoincrement())
+  sku          String          @unique
+  name         String
+  categoryId   Int
+  category     Category        @relation(fields: [categoryId], references: [id])
+  price        Decimal         @db.Decimal(10, 2)
+  quantity     Int             @default(0)
+  reorderLevel Int             @default(10)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  movements    StockMovement[]
+
+  @@index([categoryId])
+  @@index([name])
+}
+
+// `quantity` is a SIGNED change: IN = +n, OUT = -n, ADJUST = (counted - previous).
+// Invariant: product.quantity == SUM(movement.quantity) for that product.
+model StockMovement {
+  id        Int          @id @default(autoincrement())
+  productId Int
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type      MovementType
+  quantity  Int
+  note      String?
+  createdAt DateTime     @default(now())
+
+  @@index([productId, createdAt])
+  @@index([createdAt])
+}
