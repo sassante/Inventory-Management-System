@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Prisma, type MovementType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { applyMovement, StockError } from "@/lib/stock";
+import { requireUser, requireAdmin } from "@/lib/auth";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const num = (f: FormData, k: string) => Number(str(f, k));
@@ -18,6 +19,7 @@ function validate(price: number, reorderLevel: number) {
 }
 
 export async function createProduct(fd: FormData) {
+  const user = await requireUser();
   const sku = str(fd, "sku").toUpperCase();
   const name = str(fd, "name");
   const category = str(fd, "category");
@@ -36,7 +38,7 @@ export async function createProduct(fd: FormData) {
       data: {
         sku, name, price, quantity, reorderLevel,
         category: { connectOrCreate: { where: { name: category }, create: { name: category } } },
-        movements: quantity > 0 ? { create: { type: "IN", quantity, note: "Initial stock" } } : undefined,
+        movements: quantity > 0 ? { create: { type: "IN", quantity, note: "Initial stock", createdBy: user.name } } : undefined,
       },
     });
     id = p.id;
@@ -49,6 +51,7 @@ export async function createProduct(fd: FormData) {
 }
 
 export async function updateProduct(fd: FormData) {
+  await requireUser();
   const id = num(fd, "id");
   const path = `/products/${id}`;
   const name = str(fd, "name");
@@ -69,6 +72,7 @@ export async function updateProduct(fd: FormData) {
 }
 
 export async function moveStock(fd: FormData) {
+  const user = await requireUser();
   const productId = num(fd, "productId");
   const path = `/products/${productId}`;
   try {
@@ -77,6 +81,7 @@ export async function moveStock(fd: FormData) {
       type: str(fd, "type") as MovementType,
       quantity: num(fd, "quantity"),
       note: str(fd, "note") || undefined,
+      createdBy: user.name,
     });
   } catch (e) {
     if (e instanceof StockError) go(path, "error", e.message);
@@ -87,6 +92,7 @@ export async function moveStock(fd: FormData) {
 }
 
 export async function deleteProduct(fd: FormData) {
+  await requireAdmin();
   await prisma.product.delete({ where: { id: num(fd, "id") } });
   refresh();
   redirect("/products");

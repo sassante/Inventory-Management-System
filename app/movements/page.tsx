@@ -26,7 +26,7 @@ export default async function Movements({ searchParams }: { searchParams: Promis
       <section className="panel flush">
         <div className="scroll">
           <table>
-            <thead><tr><th>When</th><th>Product</th><th>Type</th><th className="num">Change</th><th>Note</th></tr></thead>
+            <thead><tr><th>When</th><th>Product</th><th>Type</th><th className="num">Change</th><th>Note</th><th>By</th></tr></thead>
             <tbody>
               {rows.map((m) => (
                 <tr key={m.id}>
@@ -35,6 +35,7 @@ export default async function Movements({ searchParams }: { searchParams: Promis
                   <td>{m.type}</td>
                   <td className={`num ${m.quantity < 0 ? "bad" : "good"}`}>{signed(m.quantity)}</td>
                   <td className="muted">{m.note}</td>
+                  <td className="muted">{m.createdBy}</td>
                 </tr>
               ))}
             </tbody>

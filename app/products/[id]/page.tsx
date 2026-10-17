@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { moveStock, updateProduct, deleteProduct } from "@/app/actions";
 import { money, when, signed, stockStatus, statusLabel } from "@/lib/format";
 
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; ok?: string }> };
 
 export default async function ProductPage({ params, searchParams }: Props) {
+  const user = await requireUser();
   const { id } = await params;
   const { error, ok } = await searchParams;
   const pid = Number(id);
@@ -69,7 +71,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
         <h2>Stock history</h2>
         {p.movements.length === 0 ? <p className="muted">No movements recorded.</p> : (
           <table>
-            <thead><tr><th>When</th><th>Type</th><th className="num">Change</th><th>Note</th></tr></thead>
+            <thead><tr><th>When</th><th>Type</th><th className="num">Change</th><th>Note</th><th>By</th></tr></thead>
             <tbody>
               {p.movements.map((m) => (
                 <tr key={m.id}>
@@ -77,6 +79,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
                   <td>{m.type}</td>
                   <td className={`num ${m.quantity < 0 ? "bad" : "good"}`}>{signed(m.quantity)}</td>
                   <td className="muted">{m.note}</td>
+                  <td className="muted">{m.createdBy}</td>
                 </tr>
               ))}
             </tbody>
@@ -84,11 +87,13 @@ export default async function ProductPage({ params, searchParams }: Props) {
         )}
       </section>
 
+      {user.role === "ADMIN" && (
       <details className="danger">
         <summary>Delete this product</summary>
         <p>This also deletes its stock history and can't be undone.</p>
         <form action={deleteProduct}><input type="hidden" name="id" value={p.id} /><button className="btn danger-btn">Delete product</button></form>
       </details>
+      )}
     </>
   );
 }

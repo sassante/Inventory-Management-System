@@ -9,13 +9,14 @@ export type MovementInput = {
   /** IN/OUT: units moved. ADJUST: the counted quantity now on the shelf. */
   quantity: number;
   note?: string;
+  createdBy?: string;
 };
 
 /**
  * Updates stock and logs the movement in ONE transaction.
  * Stored movement quantity is a signed delta, so quantity == sum(movements) always.
  */
-export async function applyMovement({ productId, type, quantity, note }: MovementInput) {
+export async function applyMovement({ productId, type, quantity, note, createdBy }: MovementInput) {
   if (!Number.isInteger(quantity) || quantity < 0) throw new StockError("Quantity must be a whole number, 0 or more.");
   if (type !== "ADJUST" && quantity === 0) throw new StockError("Quantity must be at least 1.");
 
@@ -34,6 +35,6 @@ export async function applyMovement({ productId, type, quantity, note }: Movemen
     });
     if (res.count === 0) throw new StockError("Stock changed while you were saving. Please try again.");
 
-    return tx.stockMovement.create({ data: { productId, type, quantity: delta, note: note || null } });
+    return tx.stockMovement.create({ data: { productId, type, quantity: delta, note: note || null, createdBy: createdBy ?? null } });
   });
 }

@@ -3,14 +3,28 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
 }
 
 enum MovementType {
   IN
   OUT
   ADJUST
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(STAFF)
+  createdAt    DateTime @default(now())
 }
 
 model Category {
@@ -45,6 +59,7 @@ model StockMovement {
   type      MovementType
   quantity  Int
   note      String?
+  createdBy String?
   createdAt DateTime     @default(now())
 
   @@index([productId, createdAt])
